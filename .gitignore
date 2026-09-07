@@ -55,3 +55,12 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+
+# Code editors config
+.zed
+.vscode
+
+# game rom
+
+*.ch8

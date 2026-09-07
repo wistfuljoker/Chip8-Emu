@@ -1,2 +1,5 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using Chip8_Emu;
+
+Chip8 chip = new Chip8();
+
+chip.initializer();
