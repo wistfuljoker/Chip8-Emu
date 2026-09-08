@@ -1,5 +1,7 @@
 ﻿using Chip8_Emu;
 
-Chip8 chip = new Chip8();
+var chip = new Chip8();
 
-chip.initializer();
+chip.Initializer();
+
+chip.EmulateCycle();
