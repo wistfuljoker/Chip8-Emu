@@ -4,4 +4,5 @@ var chip = new Chip8();
 
 chip.Initializer();
 
-chip.EmulateCycle();
+while (true)
+  chip.EmulateCycle();

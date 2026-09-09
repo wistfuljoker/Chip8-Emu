@@ -1,4 +1,5 @@
 ﻿using System.Reflection.Emit;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Chip8_Emu;
 
@@ -29,9 +30,10 @@ public class Chip8
   byte[] keypad = new byte[16];
 
   // fontset
-  byte[] chip8_fontset =
- [
-    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+
+  readonly byte[] chip8_fontset =
+[
+  0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
     0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
@@ -47,17 +49,19 @@ public class Chip8
     0xE0, 0x90, 0x90, 0x90, 0xE0, // D
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
- ];
-
+];
   // Drawflag
   bool Drawflag;
+
+  // Random num generator
+  Random rand = new Random();
 
   void Read_rom()
   {
     try
     {
-      using FileStream fs = File.OpenRead("rom.ch8");
-      int bytesRead = fs.Read(memory, 512, 3584);
+    using FileStream fs = File.OpenRead("rom.ch8");
+    int bytesRead = fs.Read(memory, 512, 3584);
       Console.WriteLine("ROM successfully loaded");
     }
     catch (Exception ex)
@@ -114,7 +118,7 @@ public class Chip8
             break;
 
           default:
-            Console.Error.WriteLine("Unknown opcode [0x0000]: 0x{opcode}X");
+            Console.Error.WriteLine($"Unknown opcode [0x0000]: 0x{opcode}X");
             pc += 2;
             break;
         }
@@ -122,13 +126,13 @@ public class Chip8
         break;
 
       case 0x1000: // (1NNN) jump to location nnn
-        pc = V[opcode & 0x0FFF];
+        pc = (ushort)(opcode & 0xFFF);
         break;
 
       case 0x2000: // (2NNN) call subroutine at nnn
         sp++;
         memory[sp] = (byte)pc;
-        pc = V[opcode & 0x0FFF];
+        pc = (ushort)(opcode & 0x0FFF);
         break;
 
       case 0x3000: // (3XKK) skip next instruction if Vx = kk
@@ -197,8 +201,8 @@ public class Chip8
             break;
 
           case 0x0004: // (8XY4) set Vx = Vx+ Vy, set VF = carry
-            // creates 2 variables to simplify the overflow check
-            // could have used try catch
+                       // creates 2 variables to simplify the overflow check
+                       // could have used try catch
             byte X = V[(opcode & 0x0F00) >> 8];
             byte Y = V[(opcode & 0x00F0) >> 4];
             V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4];
@@ -250,11 +254,133 @@ public class Chip8
             break;
 
           default:
-            Console.Error.WriteLine("Unknown opcode [0x8000]: 0x{opcode}X");
+            Console.Error.WriteLine($"Unknown opcode [0x8000]: 0x{opcode}X");
             pc += 2;
             break;
         }
+        break;
 
+      case 0x9000: // (9XY0) set Vx = Vx SHL 1
+        if (V[(opcode & 0x0F00) >> 8] != V[(opcode & 0x00F0) >> 4])
+          pc += 2;
+        pc += 2;
+        break;
+
+      case 0xA000: // (ANNN) set I = nnn
+        I = (ushort)(opcode & 0x0FFF);
+        pc += 2;
+        break;
+
+      case 0xB000: // (BNNN) jump to location nnn + V0
+        pc = (ushort)((opcode & 0x0FFF) + V[0]);
+        break;
+
+      case 0xC000: // (CXKK) set Vx = random byte and kk
+        V[(opcode & 0x0F00) >> 8] = (byte)((byte)rand.Next() & (opcode & 0x0FFF));
+        pc += 2;
+        break;
+
+      case 0xD000: // (DYNX) display n-byte sprite starting at
+                   // memory location I at (Vx, Vy), set VF = collision
+        ushort x = V[(opcode & 0xF000) >> 8];
+        ushort y = V[(opcode & 0x00F0) >> 4];
+        ushort height = (ushort)(opcode & 0x000F);
+        ushort pixel;
+
+        V[0xF] = 0;
+        for (int yline = 0; yline < height; yline++)
+        {
+          pixel = memory[I + yline];
+          for (int xline = 0; xline < 8; xline++)
+          {
+            if ((pixel & (0x80 >> xline)) != 0)
+            {
+              if (gfx[x + xline + ((y + yline) * 64)] == 1)
+                V[0xF] = 1;
+              gfx[x + xline + ((y + yline) * 64)] ^= 1;
+            }
+          }
+        }
+        Drawflag = true;
+        pc += 2;
+        break;
+
+      case 0xE000:
+        switch (opcode & 0x000F)
+        {
+          case 0x000E: // (EX9E) skip next instruction if a key with the value of Vx is pressed.
+
+            break;
+
+          case 0x0001: // (EXA1) skip next instruction if a key with the value of Vx is not pressed.
+            break;
+
+
+          default:
+            Console.Error.WriteLine($"Unknown opcode [0xE000]: 0x{opcode}X");
+            pc += 2;
+            break;
+        }
+        break;
+
+      case 0xF000:
+        switch (opcode & 0x000F)
+        {
+          case 0x0007: // (FX07) set Vx = delay timer value
+            V[(opcode & 0x0F00) >> 8] = delay_timer;
+            pc += 2;
+            break;
+
+          case 0x000A: // (FX0A) wait for a key press, store the value of the key in Vx
+            pc += 2;
+            break;
+
+          case 0x0015: // (FX15) set delay timer = Vx
+            delay_timer = V[(opcode & 0x0F00) >> 8];
+            pc += 2;
+            break;
+
+          case 0x0018: // (FX18) set sound timer = Vx
+            sound_timer = V[(opcode & 0x0F00) >> 8];
+            pc += 2;
+            break;
+
+          case 0x001E: // (FX1E) set I = I + Vx
+            I += V[(opcode & 0x0F00) >> 8];
+            pc += 2;
+            break;
+
+          case 0x0029: // (FX29) set I location of sprite digit Vx
+            I = gfx[V[(opcode & 0x0F00) >> 8]];
+            pc += 2;
+            break;
+
+          case 0x0033: // (FX33) store bcd representation of Vx in memory locations I, I+1 and I+2
+            memory[I] = (byte)(V[(opcode & 0x0F00) >> 8] / 100);
+            memory[I + 1] = (byte)(V[(opcode & 0x0F00) >> 8] / 10 % 10);
+            memory[I + 2] = (byte)(V[(opcode & 0x0F00) >> 8] % 100 % 10);
+            pc += 2;
+            break;
+
+          case 0x0055: // (FX55) store registers V0 through Vx in memory starting at location I
+            for (byte i = 0; i < V[(opcode & 0x0F00) >> 8]; i++)
+              memory[I + i] = V[i];
+
+            pc += 2;
+            break;
+
+          case 0x0065: // (FX65) read registers V0 through Vx from memory starting at location I
+
+            for (byte i = 0; i < V[(opcode & 0x0F00) >> 8]; i++)
+              V[i] = memory[I + i];
+            pc += 2;
+            break;
+
+          default:
+            Console.Error.WriteLine($"Unknown opcode [0xF000]: 0x{opcode}X");
+            pc += 2;
+            break;
+        }
         break;
 
       default:
