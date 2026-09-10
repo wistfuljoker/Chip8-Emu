@@ -16,7 +16,7 @@ public class Chip8
       pc;
 
   // The screen is black and white and has 2048 pixels (64x32)
-  byte[] gfx = new byte[64 * 32];
+  internal byte[] gfx = new byte[64 * 32];
 
   // delay timer and sound timer
   byte delay_timer,
@@ -51,7 +51,7 @@ public class Chip8
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 ];
   // Drawflag
-  bool Drawflag;
+  internal bool Drawflag;
 
   // Random num generator
   Random rand = new Random();
@@ -60,8 +60,8 @@ public class Chip8
   {
     try
     {
-    using FileStream fs = File.OpenRead("rom.ch8");
-    int bytesRead = fs.Read(memory, 512, 3584);
+      using FileStream fs = File.OpenRead("rom.ch8");
+      int bytesRead = fs.Read(memory, 512, 3584);
       Console.WriteLine("ROM successfully loaded");
     }
     catch (Exception ex)
@@ -105,16 +105,18 @@ public class Chip8
     switch (opcode & 0xF000)
     {
       case 0x0000:
-        switch (opcode & 0x00FF)
+        switch (opcode & 0x000F)
         {
-          case 0x00E0: // (00E0) clear the display
+          case 0x0000: // (00E0) clear the display
             Array.Clear(gfx, 0, gfx.Length);
+            Drawflag = true;
             pc += 2;
             break;
 
-          case 0x00EE: // (00EE) return from a subroutine
-            pc = memory[sp];
+          case 0x000E: // (00EE) return from a subroutine
+            memory[(byte)sp] = (byte)pc;
             sp--;
+            pc += 2;
             break;
 
           default:
@@ -130,8 +132,8 @@ public class Chip8
         break;
 
       case 0x2000: // (2NNN) call subroutine at nnn
+        memory[(byte)sp] = (byte)pc;
         sp++;
-        memory[sp] = (byte)pc;
         pc = (ushort)(opcode & 0x0FFF);
         break;
 
@@ -282,7 +284,7 @@ public class Chip8
 
       case 0xD000: // (DYNX) display n-byte sprite starting at
                    // memory location I at (Vx, Vy), set VF = collision
-        ushort x = V[(opcode & 0xF000) >> 8];
+        ushort x = V[(opcode & 0x0F00) >> 8];
         ushort y = V[(opcode & 0x00F0) >> 4];
         ushort height = (ushort)(opcode & 0x000F);
         ushort pixel;
@@ -309,10 +311,11 @@ public class Chip8
         switch (opcode & 0x000F)
         {
           case 0x000E: // (EX9E) skip next instruction if a key with the value of Vx is pressed.
-
+            pc += 2;
             break;
 
           case 0x0001: // (EXA1) skip next instruction if a key with the value of Vx is not pressed.
+            pc+=2;
             break;
 
 
@@ -324,7 +327,7 @@ public class Chip8
         break;
 
       case 0xF000:
-        switch (opcode & 0x000F)
+        switch (opcode & 0x00FF)
         {
           case 0x0007: // (FX07) set Vx = delay timer value
             V[(opcode & 0x0F00) >> 8] = delay_timer;
@@ -363,7 +366,7 @@ public class Chip8
             break;
 
           case 0x0055: // (FX55) store registers V0 through Vx in memory starting at location I
-            for (byte i = 0; i < V[(opcode & 0x0F00) >> 8]; i++)
+            for (byte i = 0; V[i] == V[(opcode & 0x0F00) >> 8]; i++)
               memory[I + i] = V[i];
 
             pc += 2;
@@ -397,6 +400,34 @@ public class Chip8
       if (sound_timer == 1)
         Console.WriteLine("BEEP!");
       sound_timer--;
+    }
+  }
+}
+
+
+// claude vibecoded screen terminal test
+class Chip8Display
+{
+  const int Width = 64;
+  const int Height = 32;
+  bool initialized = false;
+
+  public void Render(byte[] display) // 64*32 array, 0 or 1 per pixel
+  {
+    if (!initialized)
+    {
+      Console.CursorVisible = false;
+      Console.Clear();
+      initialized = true;
+    }
+
+    for (int y = 0; y < Height; y++)
+    {
+      Console.SetCursorPosition(0, y);
+      var row = new System.Text.StringBuilder(Width);
+      for (int x = 0; x < Width; x++)
+        row.Append(display[y * Width + x] != 0 ? '#' : ' ');
+      Console.Write(row.ToString());
     }
   }
 }
