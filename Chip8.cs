@@ -228,12 +228,17 @@ public class Chip8
             break;
 
           case 0x0006: // (8XY6) set Vx = Vx SHR
-            if ((V[(opcode & 0x0F00) >> 8] & 0x000F) == 1)
+            if ((V[(opcode & 0x0F00) >> 8] & 0x01) == 1)
+            {
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x0F00) >> 8] >> 1);
               V[0xF] = 1;
+            }
             else
+            {
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x0F00) >> 8] >> 1);
               V[0xF] = 0;
+            }
 
-            V[(opcode & 0x0F00) >> 8] /= 2;
 
             break;
 
@@ -253,12 +258,16 @@ public class Chip8
             break;
 
           case 0x000E: // (8XYE) set Vx = Vx SHL 1
-            if ((V[(opcode & 0x0F00) >> 8] & 0x000F) == 1)
+            if ((V[(opcode & 0x0F00) >> 8] >> 7) == 1)
+            {
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x0F00) >> 8] << 1);
               V[0xF] = 1;
+            }
             else
+            {
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x0F00) >> 8] << 1);
               V[0xF] = 0;
-
-            V[(opcode & 0x0F00) >> 8] *= 2;
+            }
 
             break;
 
