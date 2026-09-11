@@ -206,7 +206,7 @@ public class Chip8
             byte X = V[(opcode & 0x0F00) >> 8];
             byte Y = V[(opcode & 0x00F0) >> 4];
             V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4];
-            if ((X / 2) + (Y / 2) > 254)
+            if ((X / 2) + (Y / 2) > 254 / 2)
               V[0xF] = 1;
             else
               V[0xF] = 0;
@@ -214,12 +214,16 @@ public class Chip8
             break;
 
           case 0x0005: // (8XY5) set Vx = Vx - Vy, set VF = NOT borrow
-            if (V[(opcode & 0x0F00) >> 8] > V[(opcode & 0x00F0) >> 4])
+            if (V[(opcode & 0x0F00) >> 8] >= V[(opcode & 0x00F0) >> 4])
+            {
+              V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4];
               V[0xF] = 1;
+            }
             else
+            {
+              V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4];
               V[0xF] = 0;
-
-            V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4];
+            }
 
             break;
 
@@ -234,12 +238,17 @@ public class Chip8
             break;
 
           case 0x0007: // (8XY7) set Vx = Vy - Vx, set VF = NOT borrow
-            if (V[(opcode & 0x0F00) >> 8] < V[(opcode & 0x00F0) >> 4])
+            if (V[(opcode & 0x0F00) >> 8] <= V[(opcode & 0x00F0) >> 4])
+            {
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8]);
               V[0xF] = 1;
+            }
             else
+            {
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8]);
               V[0xF] = 0;
+            }
 
-            V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8]);
 
             break;
 
