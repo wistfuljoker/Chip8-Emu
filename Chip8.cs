@@ -13,14 +13,14 @@ public class Chip8
 
   // Index register and the program counter
   ushort I,
-      pc;
+    pc;
 
   // The screen is black and white and has 2048 pixels (64x32)
   internal byte[] gfx = new byte[64 * 32];
 
   // delay timer and sound timer
   byte delay_timer,
-      sound_timer;
+    sound_timer;
 
   // the stack and a stack pointer
   ushort[] stack = new ushort[16];
@@ -32,8 +32,8 @@ public class Chip8
   // fontset
 
   readonly byte[] chip8_fontset =
-[
-  0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+  [
+    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
     0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
@@ -49,7 +49,8 @@ public class Chip8
     0xE0, 0x90, 0x90, 0x90, 0xE0, // D
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-];
+  ];
+
   // Drawflag
   internal bool Drawflag;
 
@@ -178,7 +179,7 @@ public class Chip8
 
           case 0x0001: // (8XY1) set Vx = Vx OR Vy
             V[(opcode & 0x0F00) >> 8] = (byte)(
-                V[(opcode & 0x0F00) >> 8] | V[(opcode & 0x00F0) >> 4]
+              V[(opcode & 0x0F00) >> 8] | V[(opcode & 0x00F0) >> 4]
             );
 
 
@@ -186,7 +187,7 @@ public class Chip8
 
           case 0x0002: // (8XY2) set Vx = Vx AND Vy
             V[(opcode & 0x0F00) >> 8] = (byte)(
-                V[(opcode & 0x0F00) >> 8] & V[(opcode & 0x00F0) >> 4]
+              V[(opcode & 0x0F00) >> 8] & V[(opcode & 0x00F0) >> 4]
             );
 
 
@@ -194,15 +195,15 @@ public class Chip8
 
           case 0x0003: // (8XY3) set Vx = Vx XOR Vy
             V[(opcode & 0x0F00) >> 8] = (byte)(
-                V[(opcode & 0x0F00) >> 8] ^ V[(opcode & 0x00F0) >> 4]
+              V[(opcode & 0x0F00) >> 8] ^ V[(opcode & 0x00F0) >> 4]
             );
 
 
             break;
 
           case 0x0004: // (8XY4) set Vx = Vx+ Vy, set VF = carry
-                       // creates 2 variables to simplify the overflow check
-                       // could have used try catch
+            // creates 2 variables to simplify the overflow check
+            // could have used try catch
             byte X = V[(opcode & 0x0F00) >> 8];
             byte Y = V[(opcode & 0x00F0) >> 4];
             V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4];
@@ -276,6 +277,7 @@ public class Chip8
 
             break;
         }
+
         break;
 
       case 0x9000: // (9XY0) set Vx = Vx SHL 1
@@ -299,14 +301,14 @@ public class Chip8
         break;
 
       case 0xD000: // (DYNX) display n-byte sprite starting at
-                   // memory location I at (Vx, Vy), set VF = collision
+        // memory location I at (Vx, Vy), set VF = collision
         ushort x = V[(opcode & 0x0F00) >> 8];
         ushort y = V[(opcode & 0x00F0) >> 4];
         ushort height = (ushort)(opcode & 0x000F);
         ushort pixel;
 
         V[0xF] = 0;
-        for (int yline = 0; yline < height; yline++)
+        for (byte yline = 0; yline < height; yline++)
         {
           pixel = memory[I + yline];
           for (int xline = 0; xline < 8; xline++)
@@ -319,6 +321,7 @@ public class Chip8
             }
           }
         }
+
         Drawflag = true;
 
         break;
@@ -340,6 +343,7 @@ public class Chip8
 
             break;
         }
+
         break;
 
       case 0xF000:
@@ -375,6 +379,7 @@ public class Chip8
             break;
 
           case 0x0033: // (FX33) store bcd representation of Vx in memory locations I, I+1 and I+2
+
             memory[I] = (byte)(V[(opcode & 0x0F00) >> 8] / 100);
             memory[I + 1] = (byte)(V[(opcode & 0x0F00) >> 8] / 10 % 10);
             memory[I + 2] = (byte)(V[(opcode & 0x0F00) >> 8] % 100 % 10);
@@ -382,14 +387,14 @@ public class Chip8
             break;
 
           case 0x0055: // (FX55) store registers V0 through Vx in memory starting at location I
-            for (byte i = 0; V[i] == V[(opcode & 0x0F00) >> 8]; i++)
+            for (int i = 0; i <= (opcode & 0x0F00) >> 8; i++)
               memory[I + i] = V[i];
 
             break;
 
           case 0x0065: // (FX65) read registers V0 through Vx from memory starting at location I
 
-            for (byte i = 0; V[i] == V[(opcode & 0x0F00) >> 8]; i++)
+            for (byte i = 0; i <= (opcode & 0x0F00) >> 8; i++)
               V[i] = memory[I + i];
 
             break;
@@ -399,6 +404,7 @@ public class Chip8
 
             break;
         }
+
         break;
 
       default:
@@ -418,7 +424,6 @@ public class Chip8
     }
   }
 }
-
 
 // claude vibecoded screen terminal test
 class Chip8Display
