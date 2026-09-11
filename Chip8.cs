@@ -68,6 +68,7 @@ public class Chip8
     {
       Console.Error.WriteLine($"Error: {ex.Message}");
       Console.Error.WriteLine("ROM failed to load");
+      Environment.Exit(1);
     }
   }
 
@@ -99,6 +100,7 @@ public class Chip8
   {
     // fetch opcode
     opcode = (ushort)(memory[pc] << 8 | memory[pc + 1]);
+    pc += 2;
 
     // decode opcode
 
@@ -110,18 +112,18 @@ public class Chip8
           case 0x0000: // (00E0) clear the display
             Array.Clear(gfx, 0, gfx.Length);
             Drawflag = true;
-            pc += 2;
+
             break;
 
           case 0x000E: // (00EE) return from a subroutine
-            memory[(byte)sp] = (byte)pc;
+            pc = stack[sp];
             sp--;
-            pc += 2;
+
             break;
 
           default:
             Console.Error.WriteLine($"Unknown opcode [0x0000]: 0x{opcode}X");
-            pc += 2;
+
             break;
         }
 
@@ -132,40 +134,37 @@ public class Chip8
         break;
 
       case 0x2000: // (2NNN) call subroutine at nnn
-        memory[(byte)sp] = (byte)pc;
         sp++;
+        stack[sp] = pc;
         pc = (ushort)(opcode & 0x0FFF);
         break;
 
       case 0x3000: // (3XKK) skip next instruction if Vx = kk
-        if (V[(opcode & 0x0F00) >> 8] == 0x00FF)
+        if (V[(opcode & 0x0F00) >> 8] == (opcode & 0x00FF))
           pc += 2;
 
-        pc += 2;
         break;
 
       case 0x4000: // (4XKK) skip next instruction if Vx != kk
-        if (V[(opcode & 0x0F00) >> 8] != 0x00FF)
+        if (V[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF))
           pc += 2;
 
-        pc += 2;
         break;
 
       case 0x5000: // (5XY0) skip next instruction if Vx = Vy
         if (V[(opcode & 0x0F00) >> 8] == V[(opcode & 0x00F0) >> 4])
           pc += 2;
 
-        pc += 2;
         break;
 
       case 0x6000: // (6XKK) set Vx = kk
         V[(opcode & 0x0F00) >> 8] = (byte)(opcode & 0x00FF);
-        pc += 2;
+
         break;
 
       case 0x7000: // (set Vx = Vx + kk)
         V[(opcode & 0x0F00) >> 8] += (byte)(opcode & 0x00FF);
-        pc += 2;
+
         break;
 
       case 0x8000:
@@ -174,7 +173,6 @@ public class Chip8
         {
           case 0x0000: // (8XY0) set Vx = Vy
             V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4];
-            pc += 2;
 
             break;
 
@@ -183,15 +181,15 @@ public class Chip8
                 V[(opcode & 0x0F00) >> 8] | V[(opcode & 0x00F0) >> 4]
             );
 
-            pc += 2;
+
             break;
 
           case 0x0002: // (8XY2) set Vx = Vx AND Vy
             V[(opcode & 0x0F00) >> 8] = (byte)(
-                V[(opcode & 0x0F00) >> 8] | V[(opcode & 0x00F0) >> 4]
+                V[(opcode & 0x0F00) >> 8] & V[(opcode & 0x00F0) >> 4]
             );
 
-            pc += 2;
+
             break;
 
           case 0x0003: // (8XY3) set Vx = Vx XOR Vy
@@ -199,7 +197,7 @@ public class Chip8
                 V[(opcode & 0x0F00) >> 8] ^ V[(opcode & 0x00F0) >> 4]
             );
 
-            pc += 2;
+
             break;
 
           case 0x0004: // (8XY4) set Vx = Vx+ Vy, set VF = carry
@@ -212,7 +210,7 @@ public class Chip8
               V[0xF] = 1;
             else
               V[0xF] = 0;
-            pc += 2;
+
             break;
 
           case 0x0005: // (8XY5) set Vx = Vx - Vy, set VF = NOT borrow
@@ -222,7 +220,7 @@ public class Chip8
               V[0xF] = 0;
 
             V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4];
-            pc += 2;
+
             break;
 
           case 0x0006: // (8XY6) set Vx = Vx SHR
@@ -232,7 +230,7 @@ public class Chip8
               V[0xF] = 0;
 
             V[(opcode & 0x0F00) >> 8] /= 2;
-            pc += 2;
+
             break;
 
           case 0x0007: // (8XY7) set Vx = Vy - Vx, set VF = NOT borrow
@@ -241,8 +239,8 @@ public class Chip8
             else
               V[0xF] = 0;
 
-            V[(opcode & 0x00F0) >> 4] -= V[(opcode & 0x0F00) >> 8];
-            pc += 2;
+            V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8]);
+
             break;
 
           case 0x000E: // (8XYE) set Vx = Vx SHL 1
@@ -252,12 +250,12 @@ public class Chip8
               V[0xF] = 0;
 
             V[(opcode & 0x0F00) >> 8] *= 2;
-            pc += 2;
+
             break;
 
           default:
             Console.Error.WriteLine($"Unknown opcode [0x8000]: 0x{opcode}X");
-            pc += 2;
+
             break;
         }
         break;
@@ -265,12 +263,12 @@ public class Chip8
       case 0x9000: // (9XY0) set Vx = Vx SHL 1
         if (V[(opcode & 0x0F00) >> 8] != V[(opcode & 0x00F0) >> 4])
           pc += 2;
-        pc += 2;
+
         break;
 
       case 0xA000: // (ANNN) set I = nnn
         I = (ushort)(opcode & 0x0FFF);
-        pc += 2;
+
         break;
 
       case 0xB000: // (BNNN) jump to location nnn + V0
@@ -279,7 +277,7 @@ public class Chip8
 
       case 0xC000: // (CXKK) set Vx = random byte and kk
         V[(opcode & 0x0F00) >> 8] = (byte)((byte)rand.Next() & (opcode & 0x0FFF));
-        pc += 2;
+
         break;
 
       case 0xD000: // (DYNX) display n-byte sprite starting at
@@ -304,24 +302,24 @@ public class Chip8
           }
         }
         Drawflag = true;
-        pc += 2;
+
         break;
 
       case 0xE000:
         switch (opcode & 0x000F)
         {
           case 0x000E: // (EX9E) skip next instruction if a key with the value of Vx is pressed.
-            pc += 2;
+
             break;
 
           case 0x0001: // (EXA1) skip next instruction if a key with the value of Vx is not pressed.
-            pc+=2;
+
             break;
 
 
           default:
             Console.Error.WriteLine($"Unknown opcode [0xE000]: 0x{opcode}X");
-            pc += 2;
+
             break;
         }
         break;
@@ -331,64 +329,63 @@ public class Chip8
         {
           case 0x0007: // (FX07) set Vx = delay timer value
             V[(opcode & 0x0F00) >> 8] = delay_timer;
-            pc += 2;
+
             break;
 
           case 0x000A: // (FX0A) wait for a key press, store the value of the key in Vx
-            pc += 2;
+
             break;
 
           case 0x0015: // (FX15) set delay timer = Vx
             delay_timer = V[(opcode & 0x0F00) >> 8];
-            pc += 2;
+
             break;
 
           case 0x0018: // (FX18) set sound timer = Vx
             sound_timer = V[(opcode & 0x0F00) >> 8];
-            pc += 2;
+
             break;
 
           case 0x001E: // (FX1E) set I = I + Vx
             I += V[(opcode & 0x0F00) >> 8];
-            pc += 2;
+
             break;
 
           case 0x0029: // (FX29) set I location of sprite digit Vx
             I = gfx[V[(opcode & 0x0F00) >> 8]];
-            pc += 2;
+
             break;
 
           case 0x0033: // (FX33) store bcd representation of Vx in memory locations I, I+1 and I+2
             memory[I] = (byte)(V[(opcode & 0x0F00) >> 8] / 100);
             memory[I + 1] = (byte)(V[(opcode & 0x0F00) >> 8] / 10 % 10);
             memory[I + 2] = (byte)(V[(opcode & 0x0F00) >> 8] % 100 % 10);
-            pc += 2;
+
             break;
 
           case 0x0055: // (FX55) store registers V0 through Vx in memory starting at location I
             for (byte i = 0; V[i] == V[(opcode & 0x0F00) >> 8]; i++)
               memory[I + i] = V[i];
 
-            pc += 2;
             break;
 
           case 0x0065: // (FX65) read registers V0 through Vx from memory starting at location I
 
-            for (byte i = 0; i < V[(opcode & 0x0F00) >> 8]; i++)
+            for (byte i = 0; V[i] == V[(opcode & 0x0F00) >> 8]; i++)
               V[i] = memory[I + i];
-            pc += 2;
+
             break;
 
           default:
             Console.Error.WriteLine($"Unknown opcode [0xF000]: 0x{opcode}X");
-            pc += 2;
+
             break;
         }
         break;
 
       default:
         Console.Error.WriteLine($"Unknown opcode: 0x{opcode}X");
-        pc += 2;
+
         break;
     }
 
