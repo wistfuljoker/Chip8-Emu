@@ -334,8 +334,8 @@ public class Chip8
 
       case 0xD000: // (DYNX) display n-byte sprite starting at
         // memory location I at (Vx, Vy), set VF = collision
-        var x = V[(opcode & 0x0F00) >> 8];
-        var y = V[(opcode & 0x00F0) >> 4];
+        var x = V[(opcode & 0x0F00) >> 8] % 64;
+        var y = V[(opcode & 0x00F0) >> 4] % 32;
         var height = (ushort)(opcode & 0x000F);
         ushort pixel;
 
@@ -343,19 +343,27 @@ public class Chip8
         for (byte yline = 0; yline < height; yline++)
         {
           pixel = memory[I + yline];
+
+          byte py = (byte)(y + yline);
+
+          if (py >= 32) break;
+
           for (byte xline = 0; xline < 8; xline++)
           {
-            if ((pixel & (0x80 >> xline)) != 0)
-            {
-              int px = (byte)(x + xline) % 64;
-              int py = (byte)(y + yline) % 32;
-              int index = px + (py * 64);
+            byte px = (byte)(x + xline);
 
-              if (gfx[index] == 1)
-                V[0xF] = 1;
-              gfx[index] ^= 1;
+            if (px >= 64) break;
 
-            }
+            if ((pixel & (0x80 >> xline)) == 0)
+              continue;
+
+
+            int index = px + (py * 64);
+
+            if (gfx[index] == 1)
+              V[0xF] = 1;
+            gfx[index] ^= 1;
+
           }
         }
 
