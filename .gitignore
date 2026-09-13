@@ -22,6 +22,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+publish/
 
 # .NET Core
 project.lock.json
@@ -64,3 +65,4 @@ nunit-*.xml
 # game rom
 
 *.ch8
+
