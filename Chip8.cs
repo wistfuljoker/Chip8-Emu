@@ -216,22 +216,19 @@ public class Chip8
 
           case 0x0001: // (8XY1) set Vx = Vx OR Vy
             V[(opcode & 0x0F00) >> 8] |= V[(opcode & 0x00F0) >> 4];
+            V[0xF] = 0;
 
             break;
 
           case 0x0002: // (8XY2) set Vx = Vx AND Vy
-            V[(opcode & 0x0F00) >> 8] = (byte)(
-              V[(opcode & 0x0F00) >> 8] & V[(opcode & 0x00F0) >> 4]
-            );
-
+            V[(opcode & 0x0F00) >> 8] &= V[(opcode & 0x00F0) >> 4];
+            V[0xF] = 0;
 
             break;
 
           case 0x0003: // (8XY3) set Vx = Vx XOR Vy
-            V[(opcode & 0x0F00) >> 8] = (byte)(
-              V[(opcode & 0x0F00) >> 8] ^ V[(opcode & 0x00F0) >> 4]
-            );
-
+            V[(opcode & 0x0F00) >> 8] ^= V[(opcode & 0x00F0) >> 4];
+            V[0xF] = 0;
 
             break;
 
@@ -241,7 +238,7 @@ public class Chip8
             byte X = V[(opcode & 0x0F00) >> 8];
             byte Y = V[(opcode & 0x00F0) >> 4];
             V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4];
-            if ((X / 2) + (Y / 2) > 254 / 2)
+            if ((X + Y) > 127)
               V[0xF] = 1;
             else
               V[0xF] = 0;
@@ -431,15 +428,15 @@ public class Chip8
             break;
 
           case 0x0055: // (FX55) store registers V0 through Vx in memory starting at location I
-            for (int i = 0; i <= (opcode & 0x0F00) >> 8; i++)
-              memory[I + i] = V[i];
+            for (int i = 0; i <= (opcode & 0x0F00) >> 8; i++, I++)
+              memory[I] = V[i];
 
             break;
 
           case 0x0065: // (FX65) read registers V0 through Vx from memory starting at location I
 
-            for (byte i = 0; i <= (opcode & 0x0F00) >> 8; i++)
-              V[i] = memory[I + i];
+            for (byte i = 0; i <= (opcode & 0x0F00) >> 8; i++, I++)
+              V[i] = memory[I];
 
             break;
 
