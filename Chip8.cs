@@ -26,7 +26,9 @@ public class Chip8
   ushort sp;
 
   // Chip8 keypad (HEX)
-  byte[] keypad = new byte[16];
+  public bool[] keypad = new bool[16];
+  // key pressed
+  public byte keypressed;
 
   // fontset
 
@@ -49,9 +51,43 @@ public class Chip8
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
   ];
+  // translate sdl inputs to chip8 keypad
+  internal Dictionary<SDL.Scancode, byte> Keys = new(){
+    {SDL.Scancode.Alpha1, 0x1},
+    {SDL.Scancode.Alpha2, 0x2},
+    {SDL.Scancode.Alpha3, 0x3},
+    {SDL.Scancode.Alpha4, 0xC},
+    {SDL.Scancode.Q, 0x4},
+    {SDL.Scancode.W, 0x5},
+    {SDL.Scancode.E, 0x6},
+    {SDL.Scancode.R, 0xD},
+    {SDL.Scancode.A, 0x7},
+    {SDL.Scancode.S, 0x8},
+    {SDL.Scancode.D, 0x9},
+    {SDL.Scancode.F, 0xE},
+    {SDL.Scancode.Z, 0xA},
+    {SDL.Scancode.X, 0x0},
+    {SDL.Scancode.C, 0xB},
+    {SDL.Scancode.V, 0xF}
+
+  };
+
 
   // Drawflag
   internal bool Drawflag;
+  // check if a key is being pressed;
+  internal bool waitforkey;
+  internal byte waitforkeyregister;
+
+  // manage the key
+  internal void ResolveKey(byte mkey)
+  {
+    if (!waitforkey)
+      return;
+    V[waitforkeyregister] = mkey;
+    waitforkey = false;
+
+  }
 
   // Random num generator
   Random rand = new Random();
@@ -95,13 +131,13 @@ public class Chip8
 
     Read_rom();
 
-    
   }
 
   internal void EmulateCycle()
   {
     // fetch opcode
     opcode = (ushort)(memory[pc] << 8 | memory[pc + 1]);
+    // SDL.Log($"Opcode: {opcode:X4} at PC: {pc:X4}");
     pc += 2;
 
     // decode opcode
@@ -303,22 +339,27 @@ public class Chip8
 
       case 0xD000: // (DYNX) display n-byte sprite starting at
         // memory location I at (Vx, Vy), set VF = collision
-        ushort x = V[(opcode & 0x0F00) >> 8];
-        ushort y = V[(opcode & 0x00F0) >> 4];
-        ushort height = (ushort)(opcode & 0x000F);
+        var x = V[(opcode & 0x0F00) >> 8];
+        var y = V[(opcode & 0x00F0) >> 4];
+        var height = (ushort)(opcode & 0x000F);
         ushort pixel;
 
         V[0xF] = 0;
         for (byte yline = 0; yline < height; yline++)
         {
           pixel = memory[I + yline];
-          for (int xline = 0; xline < 8; xline++)
+          for (byte xline = 0; xline < 8; xline++)
           {
             if ((pixel & (0x80 >> xline)) != 0)
             {
-              if (gfx[x + xline + ((y + yline) * 64)] == 1)
+              byte px = (byte)((x + xline) % 64);
+              byte py = (byte)((y + yline) % 32);
+              int index = px + (py * 64);
+
+              if (gfx[index] == 1)
                 V[0xF] = 1;
-              gfx[x + xline + ((y + yline) * 64)] ^= 1;
+              gfx[index] ^= 1;
+
             }
           }
         }
@@ -331,11 +372,14 @@ public class Chip8
         switch (opcode & 0x000F)
         {
           case 0x000E: // (EX9E) skip next instruction if a key with the value of Vx is pressed.
+            if (keypad[V[(opcode & 0x0F00) >> 8]])
+              pc += 2;
 
             break;
 
           case 0x0001: // (EXA1) skip next instruction if a key with the value of Vx is not pressed.
-
+            if (!keypad[V[(opcode & 0x0F00) >> 8]])
+              pc += 2;
             break;
 
 
@@ -356,6 +400,8 @@ public class Chip8
             break;
 
           case 0x000A: // (FX0A) wait for a key press, store the value of the key in Vx
+            waitforkey = true;
+            waitforkeyregister = (byte)((opcode & 0x0F00) >> 8);
 
             break;
 
