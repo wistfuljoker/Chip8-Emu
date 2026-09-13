@@ -39,12 +39,15 @@ while (running)
 
   }
 
-  if (!chip.waitforkey)
+  if (!chip.waitforkey && chip.cpuTimer.Elapsed.TotalMilliseconds >= chip.CPU_INTERVAL_MS)
+  {
     chip.EmulateCycle();
+    chip.cpuTimer.Restart();
+  }
+
 
   if (chip.Drawflag)
   {
-
     //screen.Render(chip.gfx);
     display.Render(chip.gfx);
     chip.Drawflag = false;

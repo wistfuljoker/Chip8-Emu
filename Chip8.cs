@@ -486,6 +486,13 @@ public class Chip8
 
   }
 
+
+  internal Stopwatch cpuTimer = Stopwatch.StartNew();
+
+  internal const double CPU_FREQUENCY = 500.0;
+
+  internal double CPU_INTERVAL_MS = 1000.0 / CPU_FREQUENCY;
+
 }
 
 // claude vibecoded screen terminal test
