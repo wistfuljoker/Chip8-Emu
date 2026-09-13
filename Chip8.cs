@@ -1,5 +1,4 @@
-﻿using System.Reflection.Emit;
-using System.Security.Cryptography.X509Certificates;
+﻿using SDL3;
 
 namespace Chip8_Emu;
 
@@ -95,6 +94,8 @@ public class Chip8
     }
 
     Read_rom();
+
+    
   }
 
   internal void EmulateCycle()
