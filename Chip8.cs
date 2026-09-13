@@ -1,4 +1,5 @@
-﻿using SDL3;
+﻿using System.Diagnostics;
+using SDL3;
 
 namespace Chip8_Emu;
 
@@ -346,8 +347,8 @@ public class Chip8
           {
             if ((pixel & (0x80 >> xline)) != 0)
             {
-              byte px = (byte)((x + xline) % 64);
-              byte py = (byte)((y + yline) % 32);
+              int px = (byte)(x + xline) % 64;
+              int py = (byte)(y + yline) % 32;
               int index = px + (py * 64);
 
               if (gfx[index] == 1)
@@ -454,16 +455,29 @@ public class Chip8
         break;
     }
 
-    // update timers
-    if (delay_timer > 0)
-      delay_timer--;
-    if (sound_timer > 0)
-    {
-      if (sound_timer == 1)
-        Console.WriteLine("BEEP!");
-      sound_timer--;
-    }
   }
+
+
+  private Stopwatch timer = Stopwatch.StartNew();
+  private const double TIMER_FREQUENCY = 60.0;
+  private const double TIMER_INTERVAL_MS = 1000.0 / TIMER_FREQUENCY;
+
+  public void UpdateTimer()
+  {
+    double elapsed = timer.Elapsed.TotalMilliseconds;
+
+    if (elapsed >= TIMER_INTERVAL_MS)
+    {
+      if (delay_timer > 0)
+        delay_timer--;
+      if (sound_timer > 0)
+        sound_timer--;
+
+      timer.Restart();
+    }
+
+  }
+
 }
 
 // claude vibecoded screen terminal test
@@ -491,4 +505,7 @@ class Chip8Display
       Console.Write(row.ToString());
     }
   }
+
 }
+
+
