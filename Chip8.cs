@@ -215,10 +215,7 @@ public class Chip8
             break;
 
           case 0x0001: // (8XY1) set Vx = Vx OR Vy
-            V[(opcode & 0x0F00) >> 8] = (byte)(
-              V[(opcode & 0x0F00) >> 8] | V[(opcode & 0x00F0) >> 4]
-            );
-
+            V[(opcode & 0x0F00) >> 8] |= V[(opcode & 0x00F0) >> 4];
 
             break;
 
@@ -268,12 +265,12 @@ public class Chip8
           case 0x0006: // (8XY6) set Vx = Vx SHR
             if ((V[(opcode & 0x0F00) >> 8] & 0x01) == 1)
             {
-              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x0F00) >> 8] >> 1);
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x00F0) >> 4] >> 1);
               V[0xF] = 1;
             }
             else
             {
-              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x0F00) >> 8] >> 1);
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x00F0) >> 4] >> 1);
               V[0xF] = 0;
             }
 
@@ -298,12 +295,12 @@ public class Chip8
           case 0x000E: // (8XYE) set Vx = Vx SHL 1
             if ((V[(opcode & 0x0F00) >> 8] >> 7) == 1)
             {
-              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x0F00) >> 8] << 1);
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x00F0) >> 4] << 1);
               V[0xF] = 1;
             }
             else
             {
-              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x0F00) >> 8] << 1);
+              V[(opcode & 0x0F00) >> 8] = (byte)(V[(opcode & 0x00F0) >> 4] << 1);
               V[0xF] = 0;
             }
 

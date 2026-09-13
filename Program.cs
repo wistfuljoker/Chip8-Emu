@@ -50,7 +50,7 @@ while (running)
     chip.Drawflag = false;
   }
 
-  //Thread.Sleep(1);
+  Thread.Sleep(1);
 
 }
 
